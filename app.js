@@ -1,5 +1,4 @@
 const path = require('path');
-const fs = require('fs');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -10,6 +9,7 @@ const graphqlHttp = require('express-graphql');
 const graphqlSchema = require('./graphql/schema');
 const graphqlResolver = require('./graphql/resolvers');
 const auth = require('./middleware/auth');
+const { clearImage } = require('./util/file');
 
 const app = express();
 
@@ -19,7 +19,7 @@ const fileStorage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         cb(null, uuidv4());
-    }
+    },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -50,11 +50,11 @@ app.use((req, res, next) => {
         'POST',
         'PUT',
         'DELETE',
-        'PATCH'
+        'PATCH',
     ]);
     res.setHeader('Access-Control-Allow-Headers', [
         'Authorization',
-        'Content-Type'
+        'Content-Type',
     ]);
     if (req.method === 'OPTIONS') {
         return res.sendStatus(200);
@@ -74,9 +74,10 @@ app.put('/post-image', (req, res, next) => {
     if (req.body.oldPath) {
         clearImage(req.body.oldPath);
     }
-    return res
-        .status(201)
-        .json({ message: 'File stored.', filePath: req.file.path });
+    return res.status(201).json({
+        message: 'File stored.',
+        filePath: req.file.path.replace('\\', '/'),
+    });
 });
 
 app.use(
@@ -96,9 +97,9 @@ app.use(
             return {
                 message: message,
                 status: code,
-                data: data
+                data: data,
             };
-        }
+        },
     })
 );
 
@@ -110,17 +111,14 @@ app.use((error, req, res, next) => {
     res.status(status).json({ message: message, data: data });
 });
 
+console.log(`secret: ${process.env.JWT_SECRET}`);
+
 mongoose.set('useNewUrlParser', true);
 mongoose.set('useUnifiedTopology', true);
 mongoose.set('useFindAndModify', false);
 mongoose
     .connect('mongodb://localhost/messages?retryWrites=true')
-    .then(result => {
+    .then((result) => {
         app.listen(8080);
     })
-    .catch(err => console.log(err));
-
-const clearImage = filePath => {
-    filePath = path.join(__dirname, '..', filePath);
-    fs.unlink(filePath, err => console.log(err));
-};
+    .catch((err) => console.log(err));

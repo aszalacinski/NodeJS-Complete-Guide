@@ -22,13 +22,13 @@ exports.signup = async (req, res, next) => {
         const user = new User({
             email: email,
             password: hashedPw,
-            name: name
+            name: name,
         });
         const result = await user.save();
 
         res.status(201).json({
             message: 'User created!',
-            userId: result._id
+            userId: result._id,
         });
     } catch (err) {
         if (!error.statusCode) {
@@ -62,14 +62,14 @@ exports.login = async (req, res, next) => {
         const token = jwt.sign(
             {
                 email: loadedUser.email,
-                userId: loadedUser._id.toString()
+                userId: loadedUser._id.toString(),
             },
-            'secret',
+            process.env.JWT_SECRET,
             { expiresIn: '1h' }
         );
         res.status(200).json({
             token: token,
-            userId: loadedUser._id.toString()
+            userId: loadedUser._id.toString(),
         });
     } catch (err) {
         if (!err.statusCode) {
